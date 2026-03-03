@@ -70,6 +70,8 @@ model User {
   sessions      Session[]
   orders        Order[]       // ประวัติการสั่งซื้อ
   couponUsages  CouponUsage[] // ประวัติการใช้คูปอง
+  resetToken       String?   // เก็บตั๋วผ่านทางสำหรับรีเซ็ตรหัส
+  resetTokenExpiry DateTime? // เก็บเวลาหมดอายุของตั๋ว (เช่น 15 นาที)
 }
 
 // 4. ตาราง Account (NextAuth)

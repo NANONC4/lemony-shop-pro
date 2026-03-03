@@ -88,9 +88,9 @@ export default async function GameDetailPage({ params }: Props) {
         <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay z-0 pointer-events-none" />
 
 
-        {/* ✅ ปุ่มย้อนกลับ (ย้ายมามุมซ้ายบน - Floating) */}
-        <div className="absolute top-6 left-4 md:top-8 md:left-8 z-20">
-             <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-all bg-black/20 hover:bg-white/10 px-4 py-2 rounded-full backdrop-blur-md border border-white/5 group text-sm font-medium">
+        {/* ✅ ปุ่มย้อนกลับ (ขยับลงมาหลบ Navbar ให้กดง่ายขึ้น) */}
+        <div className="absolute top-20 left-4 md:top-24 md:left-8 z-40">
+             <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-all bg-[#0a0a0a]/50 hover:bg-white/10 px-4 py-2 rounded-full backdrop-blur-md border border-white/10 group text-sm font-medium shadow-lg">
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
                 <span>หน้าหลัก</span>
              </Link>

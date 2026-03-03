@@ -26,19 +26,24 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        username: { label: "Username/Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         // 1. เช็คว่ากรอกข้อมูลมาไหม
         if (!credentials?.username || !credentials?.password) return null;
 
-        // 2. ค้นหา User
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username }
+        // ✅ 2. ค้นหา User (อัปเดตใหม่ให้หาได้ทั้ง Username และ Email)
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { username: credentials.username },
+              { email: credentials.username }
+            ]
+          }
         });
 
-        // 3. ถ้าไม่เจอ User หรือไม่มี Password
+        // 3. ถ้าไม่เจอ User หรือไม่มี Password (เช่น ล็อกอินผ่าน Google มาก่อนแล้วเพิ่งมาตั้งรหัส)
         if (!user || !user.password) return null;
 
         // 4. 🛑 เช็คว่าบัญชีถูกล็อคอยู่ไหม?
@@ -67,7 +72,7 @@ export const authOptions: NextAuthOptions = {
                 }
             });
 
-            return null;
+            return null; // NextAuth จะมองว่าเป็น Error (รหัสผิด)
         }
 
         // ✅ รหัสถูก: รีเซ็ตค่าการเดาเป็น 0
@@ -90,16 +95,14 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    // 🔥 อัปเดต: ยัด Role เข้าไปใน Token (User จะมีค่าแค่ตอน Login ครั้งแรก)
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role; // ใช้ as any เพื่อกัน TS Error
+        token.role = (user as any).role;
         token.username = (user as any).username;
       }
       return token;
     },
-    // 🔥 อัปเดต: ยัด Role จาก Token เข้าไปใน Session (เพื่อให้ Client เรียกใช้ได้)
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
@@ -110,6 +113,6 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login', // ถ้า User ยังไม่ล็อกอิน ให้เด้งไปหน้านี้
+    signIn: '/login',
   }
 };
