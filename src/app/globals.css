@@ -1,0 +1,46 @@
+/* ✅ Import Tailwind v4 */
+@import "tailwindcss";
+
+/* ✅ ตั้งค่าธีม Lemony Shop ตรงนี้เลย */
+@theme {
+  /* 🍋 สีเหลืองมะนาว (Lemon) */
+  --color-lemon-50: #fefce8;
+  --color-lemon-100: #fef9c3;
+  --color-lemon-200: #fef08a;
+  --color-lemon-300: #fde047;
+  --color-lemon-400: #facc15; /* สีหลัก */
+  --color-lemon-500: #eab308;
+  --color-lemon-600: #ca8a04;
+  --color-lemon-900: #713f12;
+
+  /* 🌑 สีดำด้าน (Dark Premium) */
+  --color-dark-900: #0f172a;
+  --color-dark-950: #020617; /* พื้นหลังหลัก */
+
+  /* 🅰️ ฟอนต์ Prompt */
+  --font-prompt: var(--font-prompt);
+  --font-sans: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ✅ Base Styles */
+/* ใน v4 ไม่ต้องใช้ @apply body แล้ว มันฉลาดขึ้น */
+body {
+  background-color: var(--color-dark-950);
+  color: #e2e8f0; /* slate-200 */
+  font-family: var(--font-prompt);
+}
+
+/* Scrollbar สวยๆ */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-dark-900);
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-lemon-400);
+}
