@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // ✅ 1. เพิ่ม Suspense เข้ามา
 import { useSearchParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Upload, Loader2, CheckCircle2, AlertTriangle, ChevronLeft, ShieldCheck, Clock } from "lucide-react";
 import Link from "next/link";
 
-export default function CheckoutPage() {
+// ✅ 2. แยกเนื้อหาเดิมออกมาเป็น Component ชื่อ CheckoutContent
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -22,11 +23,9 @@ export default function CheckoutPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ⏳ State สำหรับนับเวลา 15 นาที
   const [timeLeft, setTimeLeft] = useState<number>(15 * 60); 
   const [isExpired, setIsExpired] = useState(false);
 
-  // 1. 🛡️ โหลดข้อมูลออเดอร์จาก Server เท่านั้น (Security First)
   useEffect(() => {
     if (!token) return;
 
@@ -40,10 +39,9 @@ export default function CheckoutPage() {
           setOrderId(data.id);
           generateQR(Number(data.amount));
           
-          // 🚨 คำนวณเวลาที่เหลือจาก Database (ดึง createdAt มาจาก API)
           if (data.createdAt) {
             const orderTime = new Date(data.createdAt).getTime();
-            const expireTime = orderTime + (15 * 60 * 1000); // บวกไป 15 นาที
+            const expireTime = orderTime + (15 * 60 * 1000); 
             const now = new Date().getTime();
             const diffSeconds = Math.floor((expireTime - now) / 1000);
 
@@ -67,7 +65,6 @@ export default function CheckoutPage() {
     fetchOrderInfo();
   }, [token, router]);
 
-  // ⏱️ 1.5 ระบบนับเวลาถอยหลัง (เดินทีละ 1 วินาที)
   useEffect(() => {
     if (status !== "PENDING" || isExpired || timeLeft <= 0) return;
     
@@ -86,7 +83,6 @@ export default function CheckoutPage() {
     return () => clearInterval(timer);
   }, [timeLeft, isExpired, status]);
 
-  // 2. 🤖 ระบบ Polling เช็คสถานะ (เผื่อจ่ายเสร็จแล้วระบบอัปเดตเอง)
   useEffect(() => {
     if (!token || status === "PAID" || isExpired) return;
 
@@ -105,7 +101,6 @@ export default function CheckoutPage() {
     return () => clearInterval(interval);
   }, [token, status, isExpired]);
 
-  // 3. 💸 สูตรปั้น QR Code ถุงเงิน (DININO)
   const generateQR = (amount: number) => {
     const f = (id: string, val: string) => id + ('00' + val.length).slice(-2) + val;
     const crc16 = (data: string) => { 
@@ -130,23 +125,19 @@ export default function CheckoutPage() {
   };
 
   const handleUploadSlip = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 1. ดึงข้อมูลก้อน FileList มาก่อน
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
-    // 2. ใช้ .item(0) เพื่อดึง File ออกมา (ท่านี้ TypeScript จะยอมรับว่าเป็น File ชัวร์ๆ)
     const selectedFile = fileList.item(0);
-    
-    // 3. เช็คความปลอดภัย
     if (!selectedFile || !orderId || isExpired) return;
 
-    setFile(selectedFile); // 🟢 เส้นแดงบรรทัด 142 จะหายไป
+    setFile(selectedFile); 
     setIsVerifying(true);
     setErrorMsg("");
 
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile); // 🟢 เส้นแดงบรรทัด 148 จะหายไป
+      formData.append("file", selectedFile); 
       formData.append("orderId", orderId.toString());
 
       const res = await fetch("/api/orders/verify-slip", {
@@ -170,15 +161,14 @@ export default function CheckoutPage() {
     }
   };
 
-  // 📝 ฟังก์ชันแปลงเวลาจากวินาที ให้เป็นรูปแบบ นาที:วินาที (MM:SS)
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  if (!token) return <div className="min-h-screen bg-black flex items-center justify-center">Token Invalid</div>;
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-pink-500 w-10 h-10" /></div>;
+  if (!token) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">Token Invalid</div>;
+  if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center"><Loader2 className="animate-spin text-pink-500 w-10 h-10" /></div>;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-24 pb-20 flex items-center justify-center selection:bg-pink-500 overflow-hidden font-sans">
@@ -193,7 +183,6 @@ export default function CheckoutPage() {
           </Link>
 
           {status === "EXPIRED" ? (
-            // ❌ โหมด: หมดเวลา 15 นาที
             <div className="py-12 text-center space-y-6 animate-in zoom-in duration-500 z-10 relative">
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-red-500/20 border border-red-500/50">
                 <AlertTriangle className="h-10 w-10 text-red-500" />
@@ -207,9 +196,7 @@ export default function CheckoutPage() {
               </button>
             </div>
           ) : status === "PENDING" ? (
-            // ⏳ โหมด: รอชำระเงิน (มีนาฬิกานับถอยหลัง)
             <>
-              {/* แถบแจ้งเตือนเวลา */}
               <div className="flex items-center justify-center gap-2 mb-6 text-orange-400 text-sm font-bold bg-orange-400/10 py-1.5 px-4 rounded-full w-fit mx-auto border border-orange-400/20">
                 <Clock className="w-4 h-4 animate-pulse" /> กรุณาชำระเงินภายใน {formatTime(timeLeft)}
               </div>
@@ -219,16 +206,12 @@ export default function CheckoutPage() {
                 <h2 className="text-4xl font-black text-white tracking-tight">฿{price.toLocaleString()}</h2>
               </div>
 
-              {/* ✅ ปรับปรุงส่วน QR Code เพื่อใส่ลายน้ำเวอร์ชันเก่าที่จูนมาดีแล้ว */}
               <div className="bg-white p-6 rounded-3xl mb-6 flex flex-col items-center relative shadow-inner">
-                {/* คำอธิบายจากเวอร์ชันเก่า */}
                 <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '10px', textAlign: 'center' }}>สแกนด้วยแอพธนาคาร (ยอดจะขึ้นอัตโนมัติ)</p>
                 
-                {/* Dedicated relative container for QR and Overlay */}
                 <div className="relative w-[220px] h-[220px] overflow-hidden">
                   <QRCodeSVG value={qrPayload} size={220} level="M" className="block" />
 
-                  {/* ✅ ลายน้ำเวอร์ชันเก่า (ดึงสี, shadow, และข้อความ Thai มาครบถ้วน) */}
                   <div 
                     className="absolute inset-0 flex items-center justify-center text-center font-sans font-black pointer-events-none select-none z-10 whitespace-nowrap leading-[1.3]"
                     style={{ 
@@ -241,7 +224,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* ✅ คำเตือนเรื่องสลิปธนาคารเท่านั้น */}
                 <div className="mt-4 bg-red-50 border border-red-100 px-3 py-2 rounded-lg text-center w-full">
                   <p className="text-red-600 font-bold text-[11px] leading-relaxed">
                     ⚠️ รับชำระผ่านแอปธนาคารเท่านั้น
@@ -280,7 +262,6 @@ export default function CheckoutPage() {
               </div>
             </>
           ) : (
-            // ✅ โหมด: จ่ายสำเร็จแล้ว
             <div className="py-12 text-center space-y-6 animate-in zoom-in duration-500 z-10 relative">
               <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-green-500/20 border border-green-500/50">
                 <CheckCircle2 className="h-12 w-12 text-green-500" />
@@ -297,5 +278,14 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ✅ 3. สร้าง Component หลัก แล้วเอา Suspense ครอบ
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#050505] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-pink-500" /></div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
