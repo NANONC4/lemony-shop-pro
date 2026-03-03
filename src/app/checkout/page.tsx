@@ -1,5 +1,6 @@
 "use client";
-
+export const dynamic = "force-dynamic"; 
+export const fetchCache = "force-no-store";
 import { useState, useEffect, Suspense } from "react"; // ✅ 1. เพิ่ม Suspense เข้ามา
 import { useSearchParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
