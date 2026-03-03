@@ -132,7 +132,7 @@ export default function Navbar() {
 
       </div>
 
-      {/* --- Mobile Menu --- */}
+    {/* --- Mobile Menu --- */}
       <AnimatePresence>
         {isOpen && (
            <motion.div 
@@ -144,33 +144,45 @@ export default function Navbar() {
               <div className="px-4 py-4 space-y-2">
                  {[
                     { name: "หน้าแรก", href: "/" },
-                    { name: "เติมเกม", href: "/games", highlight: true },
+                    { name: "เติมเกม", href: "/games" },
                     { name: "ประวัติการซื้อ", href: "/profile/history" },
-                    { name: "ติดต่อเรา", href: "/contact" },
-                 ].map((item) => (
-                    <Link 
-                       key={item.href}
-                       href={item.href} 
-                       className={`block px-4 py-3 rounded-xl text-center text-sm font-bold transition-all ${
-                          item.highlight 
-                          ? "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white" 
-                          : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent hover:border-white/10"
-                       }`}
-                       onClick={() => setIsOpen(false)}
-                    >
-                       {item.name}
-                    </Link>
-                 ))}
+                    // ❌ ลบ "ติดต่อเรา" ออกไปแล้วครับ
+                 ].map((item) => {
+                    // ✅ เพิ่มตัวเช็คว่าตอนนี้อยู่หน้าไหน ถ้าตรงกันถึงจะให้เปล่งแสง
+                    const isActive = pathname === item.href; 
+                    
+                    return (
+                      <Link 
+                         key={item.href}
+                         href={item.href} 
+                         className={`block px-4 py-3 rounded-xl text-center text-sm font-bold transition-all ${
+                            isActive 
+                            ? "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white" 
+                            : "text-slate-300 hover:bg-white/5 hover:text-white border border-transparent hover:border-white/10"
+                         }`}
+                         onClick={() => setIsOpen(false)}
+                      >
+                         {item.name}
+                      </Link>
+                    )
+                 })}
                  
                  {/* แสดงปุ่ม Login ในมือถือกรณีที่ไม่ได้ Login */}
-                 {!session && (
+                 {!session ? (
                     <Link 
                         href="/login"
-                        className="block px-4 py-3 rounded-xl text-center text-sm font-bold text-white bg-white/5 border border-white/10 mt-4"
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-center text-sm font-bold text-white bg-white/5 border border-white/10 mt-4 hover:bg-white/10 transition-colors"
                         onClick={() => setIsOpen(false)}
                     >
-                        เข้าสู่ระบบ
+                        <User className="w-4 h-4" /> เข้าสู่ระบบ
                     </Link>
+                 ) : (
+                    <div className="hidden">
+                        {/* ปุ่ม Logout ไม่ต้องใส่ตรงนี้ก็ได้ครับ 
+                          เพราะคนล็อกอินแล้วสามารถกดจาก Profile Dropdown มุมขวาบนได้เลย 
+                          จะได้ไม่รกหน้าจอมือถือ 
+                        */}
+                    </div>
                  )}
               </div>
            </motion.div>

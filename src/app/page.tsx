@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import FacebookProfile from "@/components/FacebookProfile";
 import Reveal from "@/components/Reveal"; // ✅ 1. Import เข้ามา
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // 1. กำหนดให้ Next.js รีเฟรชข้อมูลใหม่ทุก 60 วินาที (ถ้าไม่มีการแก้ไขโค้ด) เพื่อให้ข้อมูลเกมและโปรโมชั่นอัพเดตอยู่เสมอ
 
 export default async function Home() {
   const games = await prisma.game.findMany({ orderBy: { updatedAt: "desc" } });
