@@ -103,28 +103,28 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
     try {
       let uploadedUrl = null;
 
-      // ✅ 5. ถ้ามีการแนบรูป ให้อัปโหลดขึ้น Supabase ก่อน
+      // 1. ถ้ามีการแนบรูป ให้อัปโหลดขึ้น Supabase ก่อน
       if (adminImageFile) {
           const fileExt = adminImageFile.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-          const filePath = `admin-replies/${fileName}`; // สร้างโฟลเดอร์ admin-replies (หรือใช้ชื่ออื่นได้)
+          // เอาไปเก็บในโฟลเดอร์ admin-replies เพื่อให้แยกกับสลิปของลูกค้า
+          const filePath = `admin-replies/reply-${selectedOrder.id}-${Date.now()}.${fileExt}`;
 
-          // อัปโหลดเข้า Bucket ชื่อ 'images' (เปลี่ยนให้ตรงกับชื่อ Bucket ของคุณ)
+          // ✅ เปลี่ยนชื่อ Bucket จาก 'images' เป็น 'order-slips' ให้ตรงกับระบบ
           const { error: uploadError } = await supabase.storage
-              .from('images') 
+              .from('order-slips') 
               .upload(filePath, adminImageFile);
 
-          if (uploadError) throw new Error("อัปโหลดรูปไม่สำเร็จ");
+          if (uploadError) throw new Error(`อัปโหลดรูปลง Supabase ไม่สำเร็จ: ${uploadError.message}`);
 
           // ดึง URL กลับมา
           const { data: publicUrlData } = supabase.storage
-              .from('images')
+              .from('order-slips')
               .getPublicUrl(filePath);
 
           uploadedUrl = publicUrlData.publicUrl;
       }
 
-      // ✅ 6. ส่งข้อมูลข้อความ + ลิงก์รูป ไปที่ API
+      // 2. ส่งข้อมูลข้อความ + ลิงก์รูป ไปที่ API
       const res = await fetch("/api/admin/orders/reply", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -143,10 +143,13 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
         setSelectedOrder(null); 
         router.refresh(); 
       } else {
-        alert("ส่งข้อมูลไม่สำเร็จ");
+        const errData = await res.json();
+        throw new Error(errData.error || "API อัปเดตข้อมูลไม่สำเร็จ");
       }
-    } catch (error) {
-      alert("Error processing your request");
+    } catch (error: any) {
+      console.error(error);
+      // ✅ เปลี่ยนให้แจ้งเตือน Error แบบละเอียด จะได้รู้ว่าพังตรงไหน
+      alert(`❌ เกิดข้อผิดพลาด: ${error.message || "ไม่ทราบสาเหตุ"}`);
     } finally {
       setIsReplying(false);
     }
