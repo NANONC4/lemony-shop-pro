@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { format, isToday } from "date-fns";
 import { th } from "date-fns/locale";
-import { Search, Filter, CheckCircle, XCircle, Clock, MessageSquare, Send, X, ShoppingCart } from "lucide-react";
+import { Search, Filter, CheckCircle, XCircle, Clock, MessageSquare, Send, X, ShoppingCart, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AdminOrderActions from "@/components/AdminOrderActions";
+import { supabase } from "@/lib/supabase"; // ✅ 1. Import Supabase
 
-// ✅ 1. เพิ่ม imageUrl ใน Interface ให้ React รู้จัก
 interface Order {
   id: number;
   totalPrice: number;
@@ -28,12 +28,12 @@ interface Order {
   };
   note?: string;      
   adminMessage?: string; 
+  adminImageUrl?: string | null; // ✅ 2. เพิ่มฟิลด์รูปแอดมินใน Interface
   uid?: string;       
   password?: string;
   username?: string;  
 }
 
-// 🚨 เอา totalSales ออกจาก interface stats ได้เลยถ้าไม่ได้ใช้แล้ว
 interface DashboardClientProps {
   orders: Order[];
   stats: {
@@ -57,7 +57,10 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
   const [replyMessage, setReplyMessage] = useState("");
   const [isReplying, setIsReplying] = useState(false);
 
-  // Auto-Refresh ทุก 5 วินาที
+  // ✅ 3. State สำหรับจัดการรูปภาพแอดมิน
+  const [adminImageFile, setAdminImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh(); 
@@ -65,7 +68,6 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
     return () => clearInterval(interval);
   }, [router]);
 
-  // ตัวกรอง (Filter)
   const filteredOrders = orders.filter((order) => {
     const statusMatch = filterStatus === "ALL" ? true : order.status === filterStatus;
     const searchLower = searchTerm.toLowerCase();
@@ -76,36 +78,75 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
     return statusMatch && searchMatch;
   });
 
-  // 💡 คำนวณออเดอร์ที่สำเร็จแล้วจากข้อมูลที่มีอยู่
   const completedCount = orders.filter(o => o.status === "COMPLETED").length;
 
   const openReplyModal = (order: Order) => {
     setSelectedOrder(order);
     setReplyMessage(order.adminMessage || ""); 
+    // เคลียร์ค่ารูปภาพเก่าทุกครั้งที่เปิด Modal ใหม่
+    setAdminImageFile(null);
+    setPreviewUrl(null);
+  };
+
+  // ✅ 4. ฟังก์ชันเมื่อแอดมินเลือกรูป
+  const handleAdminFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          setAdminImageFile(file);
+          setPreviewUrl(URL.createObjectURL(file));
+      }
   };
 
   const handleReply = async () => {
     if (!selectedOrder) return;
     setIsReplying(true);
     try {
+      let uploadedUrl = null;
+
+      // ✅ 5. ถ้ามีการแนบรูป ให้อัปโหลดขึ้น Supabase ก่อน
+      if (adminImageFile) {
+          const fileExt = adminImageFile.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const filePath = `admin-replies/${fileName}`; // สร้างโฟลเดอร์ admin-replies (หรือใช้ชื่ออื่นได้)
+
+          // อัปโหลดเข้า Bucket ชื่อ 'images' (เปลี่ยนให้ตรงกับชื่อ Bucket ของคุณ)
+          const { error: uploadError } = await supabase.storage
+              .from('images') 
+              .upload(filePath, adminImageFile);
+
+          if (uploadError) throw new Error("อัปโหลดรูปไม่สำเร็จ");
+
+          // ดึง URL กลับมา
+          const { data: publicUrlData } = supabase.storage
+              .from('images')
+              .getPublicUrl(filePath);
+
+          uploadedUrl = publicUrlData.publicUrl;
+      }
+
+      // ✅ 6. ส่งข้อมูลข้อความ + ลิงก์รูป ไปที่ API
       const res = await fetch("/api/admin/orders/reply", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: selectedOrder.id, message: replyMessage }),
+        body: JSON.stringify({ 
+            orderId: selectedOrder.id, 
+            message: replyMessage,
+            adminImageUrl: uploadedUrl // ส่ง URL รูปไปด้วย
+        }),
       });
 
       if (res.ok) {
-        alert("ส่งข้อความแล้ว ✅");
+        alert("ส่งข้อความและรูปภาพเรียบร้อย ✅");
         setOrders(prev => prev.map(o => 
-            o.id === selectedOrder.id ? { ...o, adminMessage: replyMessage } : o
+            o.id === selectedOrder.id ? { ...o, adminMessage: replyMessage, adminImageUrl: uploadedUrl } : o
         ));
         setSelectedOrder(null); 
         router.refresh(); 
       } else {
-        alert("ส่งข้อความไม่สำเร็จ");
+        alert("ส่งข้อมูลไม่สำเร็จ");
       }
     } catch (error) {
-      alert("Error sending message");
+      alert("Error processing your request");
     } finally {
       setIsReplying(false);
     }
@@ -116,7 +157,6 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
         
         {/* 1. Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 🚨 เปลี่ยนจาก ยอดขายรวม เป็น ทำรายการสำเร็จ */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-green-500/10 rounded-full blur-2xl pointer-events-none" />
                 <p className="text-slate-400 text-sm mb-1">ทำรายการสำเร็จ</p>
@@ -318,13 +358,41 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
                                 value={replyMessage}
                                 onChange={(e) => setReplyMessage(e.target.value)}
                             ></textarea>
+
+                            {/* ✅ กล่องแนบรูปให้ลูกค้า */}
+                            <div className="mt-4 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-1.5">
+                                    <ImageIcon className="w-4 h-4"/> แนบรูปภาพให้ลูกค้า
+                                </label>
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={handleAdminFileChange} 
+                                    className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
+                                />
+                                
+                                {/* พรีวิวรูปก่อนส่ง */}
+                                {previewUrl && (
+                                    <div className="mt-4 relative w-32 h-32 rounded-xl overflow-hidden border border-slate-600 shadow-lg">
+                                        <img src={previewUrl} alt="Preview" className="object-cover w-full h-full" />
+                                        <button 
+                                            type="button"
+                                            onClick={() => { setAdminImageFile(null); setPreviewUrl(null); }} 
+                                            className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full p-1 transition-colors shadow-sm"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="flex justify-end mt-4">
                                 <button 
                                     onClick={handleReply}
                                     disabled={isReplying}
-                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-500 flex items-center gap-2"
+                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-500 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {isReplying ? "กำลังส่ง..." : <> <Send className="w-4 h-4"/> ส่งข้อความ </>}
+                                    {isReplying ? "กำลังดำเนินการ..." : <> <Send className="w-4 h-4"/> ส่งข้อความ / อัปเดต </>}
                                 </button>
                             </div>
                         </div>

@@ -127,7 +127,7 @@ couponCode String?
   email           String?   // เผื่อบางเกมใช้อีเมล
   note            String?   @db.Text 
   adminMessage    String?   @db.Text 
-    
+  adminImageUrl   String?   // เพิ่มช่องนี้สำหรับเก็บรูปที่แอดมินส่ง
   // รูปสลิป
   imageUrl        String?   @db.Text 
     slipRef         String?   @unique

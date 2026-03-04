@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import {Loader2, MessageSquare, ChevronDown, ChevronUp, Send, AlertCircle, Upload, Image as ImageIcon, Trash2, Clock, CheckCircle2, XCircle, Gamepad2, Receipt, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "@/components/Reveal";
-
-// ✅ นำเข้า Supabase (ถ้าหน้าบ้านไม่ได้ใช้ลบ/อัปโหลดไฟล์แล้ว จะลบบรรทัดนี้ออกก็ได้ครับ แต่ใส่ไว้ก็ไม่พัง)
 import { supabase } from "@/lib/supabase"; 
 
 export default function HistoryPage() {
@@ -21,12 +19,10 @@ export default function HistoryPage() {
   const [message, setMessage] = useState("");
   const [twoFactor, setTwoFactor] = useState("");
   
-  // 🚀 1. แยก State: อันนึงเก็บ "ไฟล์ดิบ" ไว้ส่ง API, อีกอันเก็บ "ลิงก์ชั่วคราว" ไว้โชว์พรีวิว
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const isPollingRef = useRef(false);
 
   useEffect(() => {
@@ -71,29 +67,26 @@ export default function HistoryPage() {
     }
   };
 
-  // 🚀 2. ฟังก์ชันเลือกรูป: เก็บไฟล์ดิบ และสร้างลิงก์พรีวิว
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
       setSelectedFile(null);
       setPreviewUrl(null);
       return;
     }
-
     const file = e.target.files.item(0); 
     if (!file) return;
 
-    setSelectedFile(file); // เก็บไฟล์ดิบไว้ส่ง API
-    setPreviewUrl(URL.createObjectURL(file)); // สร้างลิงก์หลอกๆ บนเบราว์เซอร์ให้รูปขึ้นโชว์
+    setSelectedFile(file); 
+    setPreviewUrl(URL.createObjectURL(file)); 
   };
 
-  // 🚀 3. ฟังก์ชันส่งข้อมูล (เอาโค้ดเก่าที่ซ้ำซ้อนออกหมดแล้ว คลีนๆ เลยครับ)
   const handleSendReport = async (orderId: number) => {
     setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("orderId", orderId.toString());
       if (message) formData.append("message", message);
-      if (twoFactor) formData.append("twoFactorCode", twoFactor); // สังเกตว่าตัวแปรชื่อ twoFactor นะครับ
+      if (twoFactor) formData.append("twoFactorCode", twoFactor); 
       
       if (selectedFile) {
         formData.append("file", selectedFile); 
@@ -147,27 +140,21 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-32 pb-20 relative selection:bg-pink-500 selection:text-white">
-      
-      {/* Background Glow */}
       <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
         
-        {/* === Header === */}
         <div className="flex flex-col items-center text-center mb-12 space-y-3 relative">
-          
           <Reveal direction="up" delay={0.1}>
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight flex items-center gap-3 mt-6 md:mt-0">
               ประวัติ <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">การสั่งซื้อ</span>
             </h1>
           </Reveal>
-          
           <Reveal direction="scale" delay={0.2} duration={0.6}>
             <div className="h-1.5 w-24 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full mt-2" />
           </Reveal>
         </div>
 
-        {/* === Order List === */}
         <div className="space-y-4">
           {orders.map((order, index) => {
             const statusStyle = getStatusStyle(order.status);
@@ -183,7 +170,6 @@ export default function HistoryPage() {
                           {statusStyle.icon}
                           {statusStyle.label}
                         </span>
-                        
                         <span className="text-slate-400 text-xs font-mono bg-black/40 px-2 py-1 rounded-md border border-white/5">
                           #{order.id}
                         </span>
@@ -228,7 +214,6 @@ export default function HistoryPage() {
                     </div>
                   </div>
 
-                  {/* --- Accordion ฟอร์มตอบกลับ --- */}
                   <AnimatePresence>
                     {expandedOrderId === order.id && order.status === 'ISSUE' && (
                       <motion.div
@@ -239,12 +224,25 @@ export default function HistoryPage() {
                       >
                         <div className="p-5 md:p-6 space-y-5">
                           
-                          {order.adminMessage && (
+                          {/* ✅ ตรงนี้คือจุดที่เพิ่มเข้ามา: แสดงข้อความและรูปภาพจากแอดมิน */}
+                          {(order.adminMessage || order.adminImageUrl) && (
                             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-inner">
                                <h4 className="text-xs font-bold text-red-400 uppercase mb-1.5 flex items-center gap-1.5">
                                  <AlertCircle className="w-4 h-4"/> แอดมินแจ้งว่า:
                                </h4>
-                               <p className="text-slate-200 text-sm font-medium leading-relaxed">{order.adminMessage}</p>
+                               {order.adminMessage && (
+                                 <p className="text-slate-200 text-sm font-medium leading-relaxed">{order.adminMessage}</p>
+                               )}
+                               {/* รูปภาพที่แอดมินแนบมา */}
+                               {order.adminImageUrl && (
+                                 <div className="mt-4 rounded-xl overflow-hidden border border-red-500/30 bg-black/50">
+                                   <img 
+                                      src={order.adminImageUrl} 
+                                      alt="ภาพจากแอดมิน" 
+                                      className="w-full max-h-64 object-contain" 
+                                   />
+                                 </div>
+                               )}
                             </div>
                           )}
 
@@ -261,7 +259,7 @@ export default function HistoryPage() {
                             </div>
 
                             <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">แนบรูปภาพ</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">แนบรูปภาพให้แอดมิน</label>
                                 {!previewUrl ? (
                                   <label className="flex flex-col items-center justify-center w-full h-[46px] border border-dashed border-white/20 rounded-lg cursor-pointer hover:bg-white/5 hover:border-pink-500 transition-all">
                                       <div className="flex items-center gap-2 text-slate-400 text-sm">

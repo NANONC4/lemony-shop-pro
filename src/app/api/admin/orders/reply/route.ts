@@ -6,13 +6,30 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    
+    // 🔒 เช็คสิทธิ์ว่าเป็น ADMIN ถึงจะตอบกลับและส่งรูปได้
+    const userRole = (session?.user as any)?.role;
+    if (!session || userRole !== 'ADMIN') {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const { orderId, message } = await req.json();
+    // ✅ 1. รับค่า adminImageUrl ที่ส่งมาจากหน้าบ้าน
+    const { orderId, message, adminImageUrl } = await req.json();
 
+    // ✅ 2. เตรียมข้อมูลที่จะอัปเดต
+    const updateData: any = { 
+        adminMessage: message 
+    };
+
+    // ถ้าแอดมินมีการแนบรูปมาด้วย ให้เพิ่มเข้าไปในคำสั่งอัปเดต
+    if (adminImageUrl !== undefined) {
+        updateData.adminImageUrl = adminImageUrl;
+    }
+
+    // ✅ 3. อัปเดตลง Database
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
-      data: { adminMessage: message },
+      data: updateData,
     });
 
     return NextResponse.json({ success: true, order: updatedOrder });
