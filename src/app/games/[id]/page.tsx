@@ -131,7 +131,7 @@ export default async function GameDetailPage({ params }: Props) {
       {/* ------------------------------------------------------- */}
       {/* 2. CONTENT SECTION */}
       {/* ------------------------------------------------------- */}
-      <div className="container max-w-5xl mx-auto px-4 relative z-10 mt-8">
+      <div className="container max-w-5xl mx-auto px-4 relative z-40 mt-8">
          <GameShopClient game={gamePayload} />
       </div>
 

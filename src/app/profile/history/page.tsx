@@ -156,14 +156,6 @@ export default function HistoryPage() {
         {/* === Header === */}
         <div className="flex flex-col items-center text-center mb-12 space-y-3 relative">
           
-          <div className="absolute top-0 right-0 md:right-4 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              Live Update
-          </div>
-
           <Reveal direction="up" delay={0.1}>
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight flex items-center gap-3 mt-6 md:mt-0">
               ประวัติ <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">การสั่งซื้อ</span>
@@ -317,7 +309,7 @@ export default function HistoryPage() {
                             <button 
                               onClick={() => handleSendReport(order.id)}
                               disabled={isSubmitting || (!message && !twoFactor && !selectedFile)}
-                              className="flex- py-3 px-4 rounded-xl text-white font-bold bg-gradient-to-r from-pink-600 to-purple-600 hover:shadow-[0_0_20px_rgba(236,72,153,0.4)] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                              className="flex-[2] py-3 px-4 rounded-xl text-white font-bold bg-gradient-to-r from-pink-600 to-purple-600 hover:shadow-[0_0_20px_rgba(236,72,153,0.4)] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
                               {isSubmitting ? "กำลังส่ง..." : <><Send className="w-5 h-5" /> ยืนยันการส่งข้อมูล</>}
                             </button>

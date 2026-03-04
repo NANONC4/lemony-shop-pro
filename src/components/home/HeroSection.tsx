@@ -4,28 +4,24 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import Reveal from "@/components/Reveal";
-// ❌ ลบ TextReveal ออก ไม่ใช้แล้ว
 
 const swipeConfidenceThreshold = 10000;
 const swipePower = (offset: number, velocity: number) => Math.abs(offset) * velocity;
 
 export default function HeroSection({ promotions }: { promotions: any[] }) {
-  const SLIDES = promotions && promotions.length > 0 ? promotions : [
-    { id: 1, imageUrl: "/Promo.JPG", title: "Robux เรท 10 คุ้มที่สุด!", description: "เติมไว ได้จริง ปลอดภัย 100% ระบบอัตโนมัติ 24 ชม." },
-    { id: 2, imageUrl: "/rov.JPG", title: "RoV คูปองลด 30%", description: "สกินใหม่มาแรงต้องจัด! เติมปุ๊บเข้าปั๊บ รับประกันไม่โดนแบน" }
-  ];
-
+  const SLIDES = promotions || [];
   const [[page, direction], setPage] = useState([0, 0]);
-  const imageIndex = Math.abs(page % SLIDES.length);
+  const imageIndex = SLIDES.length > 0 ? Math.abs(page % SLIDES.length) : 0;
 
   const paginate = useCallback((newDirection: number) => {
     setPage([page + newDirection, newDirection]);
   }, [page]);
 
   useEffect(() => {
+    if (SLIDES.length === 0) return;
     const timer = setInterval(() => paginate(1), 7000);
     return () => clearInterval(timer);
-  }, [paginate]);
+  }, [paginate, SLIDES.length]);
 
   const handleDragEnd = (e: any, { offset, velocity }: PanInfo) => {
     const swipe = swipePower(offset.x, velocity.x);
@@ -33,8 +29,10 @@ export default function HeroSection({ promotions }: { promotions: any[] }) {
     else if (swipe > swipeConfidenceThreshold) paginate(-1);
   };
 
+  if (SLIDES.length === 0) return null;
+
   return (
-    <section className="relative w-full h-[500px] md:h-[600px] overflow-hidden bg-black cursor-grab active:cursor-grabbing select-none">
+    <section className="relative w-full h-[500px] md:h-[600px] pt-16 md:pt-20 overflow-hidden bg-black cursor-grab active:cursor-grabbing select-none">
       
       {/* Background Gradient */}
       <div className="absolute inset-0 z-0 pointer-events-none" 
@@ -51,7 +49,7 @@ export default function HeroSection({ promotions }: { promotions: any[] }) {
         <div className="absolute inset-0 opacity-[0.08] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
       </div>
 
-      <div className="relative z-10 w-full h-full container mx-auto px-4 md:px-12">
+      <div className="relative z-10 w-full h-full container mx-auto px-0 md:px-12">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={page}
@@ -68,19 +66,18 @@ export default function HeroSection({ promotions }: { promotions: any[] }) {
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             onDragEnd={handleDragEnd}
-            className="relative w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-between pt-12 md:pt-0"
+            className="relative w-full h-full flex flex-col md:flex-row items-center justify-center md:justify-between"
           >
             
             {/* 🖼️ Image Section */}
-            <div className="w-full md:w-1/2 h-full flex items-center justify-center">
-                {/* ✅ แก้ไข: ใช้ Reveal ครอบ div ที่มีความสูง (h-[450px]) ไม่ใช่ครอบ Image โดยตรง */}
+            <div className="w-full md:w-1/2 h-full flex items-center justify-center px-4 md:px-0">
                 <Reveal direction="scale" duration={0.5} delay={0.1} width="100%">
-                    <div className="relative w-full h-[250px] md:h-[450px]"> 
+                    <div className="relative w-full max-w-[380px] sm:max-w-[450px] md:max-w-none h-[350px] md:h-[450px] mx-auto"> 
                         <Image 
                             src={SLIDES[imageIndex].imageUrl} 
-                            alt="Promo"
+                            alt={SLIDES[imageIndex].title || "Promotion"}
                             fill
-                            className="object-contain drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+                            className="object-contain md:drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
                             priority
                             unoptimized
                         />
@@ -88,10 +85,8 @@ export default function HeroSection({ promotions }: { promotions: any[] }) {
                 </Reveal>
             </div>
 
-            {/* 📝 Text Section */}
+            {/* 📝 Text Section (แสดงเฉพาะในคอม ซ่อนในมือถือ) */}
             <div className="hidden md:flex md:w-1/2 flex-col items-start text-left pl-8">
-                
-                {/* ✅ แก้ไข: ใช้ Reveal ครอบข้อความธรรมดา (เลิกใช้ TextReveal) */}
                 <Reveal direction="right" delay={0.3} duration={0.6}>
                     <h1 className="text-5xl font-black text-white mb-6 leading-tight">
                         {SLIDES[imageIndex].title}
@@ -103,7 +98,6 @@ export default function HeroSection({ promotions }: { promotions: any[] }) {
                       {SLIDES[imageIndex].description}
                     </p>
                 </Reveal>
-
             </div>
 
           </motion.div>
@@ -111,12 +105,12 @@ export default function HeroSection({ promotions }: { promotions: any[] }) {
       </div>
 
       {/* Indicators */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
         {SLIDES.map((_, i) => (
           <button 
             key={i}
             onClick={() => setPage([page + (i - imageIndex), i - imageIndex])}
-            className={`h-1 rounded-full transition-all duration-300 ${i === imageIndex ? 'w-8 bg-blue-500' : 'w-2 bg-white/20'}`}
+            className={`h-1.5 rounded-full transition-all duration-300 ${i === imageIndex ? 'w-8 bg-blue-500' : 'w-2 bg-white/30'}`}
           />
         ))}
       </div>
