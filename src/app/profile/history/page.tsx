@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import {Loader2, MessageSquare, ChevronDown, ChevronUp, Send, AlertCircle, Upload, Image as ImageIcon, Trash2, Clock, CheckCircle2, XCircle, Gamepad2, Receipt, History } from "lucide-react";
+import {Loader2, MessageSquare, ChevronDown, ChevronUp, Send, AlertCircle, Upload, Image as ImageIcon, Trash2, Clock, CheckCircle2, XCircle, Gamepad2, Receipt, History, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "@/components/Reveal";
 import { supabase } from "@/lib/supabase"; 
@@ -15,6 +15,9 @@ export default function HistoryPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  
+  // ✅ State สำหรับเก็บรูปที่ถูกกดขยาย
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   
   const [message, setMessage] = useState("");
   const [twoFactor, setTwoFactor] = useState("");
@@ -224,7 +227,6 @@ export default function HistoryPage() {
                       >
                         <div className="p-5 md:p-6 space-y-5">
                           
-                          {/* ✅ ตรงนี้คือจุดที่เพิ่มเข้ามา: แสดงข้อความและรูปภาพจากแอดมิน */}
                           {(order.adminMessage || order.adminImageUrl) && (
                             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-inner">
                                <h4 className="text-xs font-bold text-red-400 uppercase mb-1.5 flex items-center gap-1.5">
@@ -233,14 +235,23 @@ export default function HistoryPage() {
                                {order.adminMessage && (
                                  <p className="text-slate-200 text-sm font-medium leading-relaxed">{order.adminMessage}</p>
                                )}
-                               {/* รูปภาพที่แอดมินแนบมา */}
+                               
+                               {/* ✅ รูปภาพที่แอดมินแนบมา (แบบใหม่ กดขยายได้) */}
                                {order.adminImageUrl && (
-                                 <div className="mt-4 rounded-xl overflow-hidden border border-red-500/30 bg-black/50">
+                                 <div 
+                                   className="mt-4 rounded-xl overflow-hidden border border-red-500/30 bg-black/50 cursor-pointer relative group"
+                                   onClick={() => setZoomedImage(order.adminImageUrl)}
+                                 >
                                    <img 
                                       src={order.adminImageUrl} 
                                       alt="ภาพจากแอดมิน" 
-                                      className="w-full max-h-64 object-contain" 
+                                      className="w-full max-h-64 object-contain group-hover:scale-105 transition-transform duration-500" 
                                    />
+                                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                      <span className="text-white text-sm font-bold flex items-center gap-2 bg-pink-600/80 px-4 py-2 rounded-full backdrop-blur-sm shadow-lg shadow-pink-500/20">
+                                        <Search className="w-4 h-4" /> กดเพื่อดูรูปขนาดเต็ม
+                                      </span>
+                                   </div>
                                  </div>
                                )}
                             </div>
@@ -337,6 +348,37 @@ export default function HistoryPage() {
         </div>
 
       </div>
+
+      {/* ✅ Popup ขยายรูปภาพ เติมให้แล้วครับ */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+            onClick={() => setZoomedImage(null)}
+          >
+            <button 
+              className="absolute top-6 right-6 text-white/50 hover:text-white bg-white/5 hover:bg-white/20 p-2 rounded-full transition-all"
+              onClick={() => setZoomedImage(null)}
+            >
+              <XCircle className="w-8 h-8" />
+            </button>
+            <motion.img 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              src={zoomedImage} 
+              alt="Zoomed Admin Reply"
+              className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
+              onClick={(e) => e.stopPropagation()} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
