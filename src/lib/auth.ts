@@ -2,7 +2,6 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import FacebookProvider from "next-auth/providers/facebook";
 import bcrypt from "bcryptjs";
 import { NextAuthOptions } from "next-auth";
 
@@ -16,13 +15,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
     }),
-    // ✅ 2. Facebook
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID || "",
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
-      allowDangerousEmailAccountLinking: true,
-    }),
-    // ✅ 3. Credentials (Login ปกติ + กัน Brute Force)
+    // ✅ 2. Credentials (Login ปกติ + กัน Brute Force)
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -33,7 +26,7 @@ export const authOptions: NextAuthOptions = {
         // 1. เช็คว่ากรอกข้อมูลมาไหม
         if (!credentials?.username || !credentials?.password) return null;
 
-        // ✅ 2. ค้นหา User (อัปเดตใหม่ให้หาได้ทั้ง Username และ Email)
+        // ✅ 2. ค้นหา User (หาได้ทั้ง Username และ Email)
         const user = await prisma.user.findFirst({
           where: {
             OR: [

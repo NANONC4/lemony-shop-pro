@@ -6,7 +6,7 @@ import { th } from "date-fns/locale";
 import { Search, Filter, CheckCircle, XCircle, Clock, MessageSquare, Send, X, ShoppingCart, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AdminOrderActions from "@/components/AdminOrderActions";
-import { supabase } from "@/lib/supabase"; // ✅ 1. Import Supabase
+
 
 interface Order {
   id: number;
@@ -97,48 +97,29 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
       }
   };
 
-  const handleReply = async () => {
+ const handleReply = async () => {
     if (!selectedOrder) return;
     setIsReplying(true);
     try {
-      let uploadedUrl = null;
+      // ✅ แพ็คข้อมูลใส่ FormData
+      const formData = new FormData();
+      formData.append("orderId", selectedOrder.id.toString());
+      if (replyMessage) formData.append("message", replyMessage);
+      if (adminImageFile) formData.append("file", adminImageFile);
 
-      // 1. ถ้ามีการแนบรูป ให้อัปโหลดขึ้น Supabase ก่อน
-      if (adminImageFile) {
-          const fileExt = adminImageFile.name.split('.').pop();
-          // เอาไปเก็บในโฟลเดอร์ admin-replies เพื่อให้แยกกับสลิปของลูกค้า
-          const filePath = `admin-replies/reply-${selectedOrder.id}-${Date.now()}.${fileExt}`;
-
-          // ✅ เปลี่ยนชื่อ Bucket จาก 'images' เป็น 'order-slips' ให้ตรงกับระบบ
-          const { error: uploadError } = await supabase.storage
-              .from('order-slips') 
-              .upload(filePath, adminImageFile);
-
-          if (uploadError) throw new Error(`อัปโหลดรูปลง Supabase ไม่สำเร็จ: ${uploadError.message}`);
-
-          // ดึง URL กลับมา
-          const { data: publicUrlData } = supabase.storage
-              .from('order-slips')
-              .getPublicUrl(filePath);
-
-          uploadedUrl = publicUrlData.publicUrl;
-      }
-
-      // 2. ส่งข้อมูลข้อความ + ลิงก์รูป ไปที่ API
+      // ✅ ยิงไปหา API หลังบ้านของเรา (ไม่ต้องยุ่งกับ Supabase ตรงๆ แล้ว)
       const res = await fetch("/api/admin/orders/reply", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            orderId: selectedOrder.id, 
-            message: replyMessage,
-            adminImageUrl: uploadedUrl // ส่ง URL รูปไปด้วย
-        }),
+        body: formData, // ส่งไปทั้งก้อนเลย
       });
 
       if (res.ok) {
+        const data = await res.json();
         alert("ส่งข้อความและรูปภาพเรียบร้อย ✅");
+        
+        // อัปเดต UI ทันที
         setOrders(prev => prev.map(o => 
-            o.id === selectedOrder.id ? { ...o, adminMessage: replyMessage, adminImageUrl: uploadedUrl } : o
+            o.id === selectedOrder.id ? { ...o, adminMessage: replyMessage, adminImageUrl: data.order.adminImageUrl } : o
         ));
         setSelectedOrder(null); 
         router.refresh(); 
@@ -148,7 +129,6 @@ export default function DashboardClient({ orders: initialOrders, stats }: Dashbo
       }
     } catch (error: any) {
       console.error(error);
-      // ✅ เปลี่ยนให้แจ้งเตือน Error แบบละเอียด จะได้รู้ว่าพังตรงไหน
       alert(`❌ เกิดข้อผิดพลาด: ${error.message || "ไม่ทราบสาเหตุ"}`);
     } finally {
       setIsReplying(false);

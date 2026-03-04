@@ -1,16 +1,51 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react"; // ✅ นำเข้า useSession
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Lock, User, Gamepad2, AlertCircle, Loader2 } from "lucide-react";
+import { Lock, User, Gamepad2, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
+  const { status } = useSession(); // ✅ เช็คสถานะการล็อกอิน
   const router = useRouter();
+  
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(""); 
+
+  // ✅ ถ้าล็อกอินอยู่แล้ว ให้โชว์หน้าต่าง Popup กลางจอ แล้วพากลับหน้าแรก
+  if (status === "authenticated") {
+    setTimeout(() => {
+      router.push("/");
+    }, 2500); // หน่วงเวลา 2.5 วินาทีให้ลูกค้าอ่านข้อความก่อนเด้งกลับ
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] px-4 relative overflow-hidden font-sans selection:bg-pink-500 selection:text-white">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
+        
+        <div className="bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl w-full max-w-sm border border-white/10 text-center relative z-10 animate-in fade-in zoom-in duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-green-400 to-emerald-500 shadow-[0_0_10px_#10b981]" />
+          
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 border border-green-500/20 mb-6 shadow-inner">
+            <CheckCircle2 className="w-10 h-10 text-green-500" />
+          </div>
+          
+          <h2 className="text-2xl font-black text-white mb-2 tracking-tight">คุณเข้าสู่ระบบอยู่แล้ว</h2>
+          <p className="text-slate-400 text-sm mb-8 flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> กำลังพากลับไปยังหน้าแรก...
+          </p>
+          
+          <button 
+            onClick={() => router.push("/")}
+            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl font-bold transition-colors"
+          >
+            กลับหน้าแรกทันที
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +73,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] px-4 relative overflow-hidden font-sans selection:bg-pink-500 selection:text-white">
+    <div className="min-h-screen flex items-center justify-center bg-[#050505] px-4 relative overflow-hidden font-sans selection:bg-pink-500 selection:text-white pb-10 pt-20">
       
       {/* แสงด้านหลัง (Glow Effect) */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
@@ -81,7 +116,6 @@ export default function LoginPage() {
           </div>
 
           <div>
-            {/* ✅ อัปเดต: เพิ่มปุ่ม ลืมรหัสผ่าน ไว้ตรงข้ามกับคำว่า Password */}
             <div className="flex items-center justify-between mb-1.5 ml-1 pr-1">
               <label className="block text-sm font-bold text-slate-300">Password</label>
               <Link href="/forgot-password" className="text-xs font-bold text-pink-400 hover:text-pink-300 transition-colors">
@@ -124,31 +158,18 @@ export default function LoginPage() {
             </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-6">
             <button
                 type="button"
                 onClick={() => signIn("google", { callbackUrl: "/" })}
-                className="w-full flex items-center justify-center px-4 py-3 border border-white/10 rounded-xl bg-white/5 text-sm font-bold text-white hover:bg-white/10 transition"
+                className="w-full flex items-center justify-center px-4 py-3.5 border border-white/10 rounded-xl bg-white text-sm font-bold text-slate-900 hover:bg-slate-200 transition shadow-lg hover:-translate-y-0.5"
             >
                 <img 
-                    className="h-5 w-5 mr-2" 
+                    className="h-5 w-5 mr-3" 
                     src="https://www.svgrepo.com/show/475656/google-color.svg" 
                     alt="Google" 
                 />
-                Google
-            </button>
-
-            <button
-                type="button"
-                onClick={() => signIn("facebook", { callbackUrl: "/" })}
-                className="w-full flex items-center justify-center px-4 py-3 border border-white/10 rounded-xl bg-white/5 text-sm font-bold text-white hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition"
-            >
-                <img 
-                    className="h-5 w-5 mr-2" 
-                    src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" 
-                    alt="Facebook" 
-                />
-                Facebook
+                เข้าสู่ระบบด้วย Google
             </button>
         </div>
 

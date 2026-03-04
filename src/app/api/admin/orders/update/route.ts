@@ -6,24 +6,20 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
   
-  // 🔒 4. เช็คสิทธิ์ Admin (Role Check)
-  // ต้อง cast type ให้มันรู้จัก role (หรือเช็คจาก db ก็ได้ แต่นี้ไวสุด)
   const userRole = (session?.user as any)?.role;
-  
   if (!session || userRole !== 'ADMIN') {
     return NextResponse.json({ error: "Forbidden: สำหรับ Admin เท่านั้น" }, { status: 403 });
   }
 
   try {
-    const { orderId, status } = await req.json();
+    const { orderId, status, adminMessage } = await req.json();
 
     // เตรียมข้อมูลที่จะอัปเดต
     let updateData: any = { status };
+    if (adminMessage !== undefined) updateData.adminMessage = adminMessage;
 
-    // 🗑️ 5. Auto Delete Image: ถ้าสถานะคือ "เสร็จสิ้น" หรือ "ยกเลิก" ให้ลบรูปทิ้ง
-    if (status === 'COMPLETED' || status === 'CANCELLED') {
-      updateData.imageUrl = null; // ล้างข้อมูล Base64 ออกจาก DB เพื่อประหยัดพื้นที่
-    }
+    // ❌ เอาคำสั่งลบรูป (imageUrl = null) ออกแล้ว เพื่อเก็บรูปไว้เป็นหลักฐาน 7 วัน!
+    // ระบบ 7 วันที่คุณชัชชัยทำไว้ (Cron Job) จะมาดึงรูปลบออกเองเมื่อถึงเวลาครับ
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
@@ -32,6 +28,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, order: updatedOrder });
   } catch (error) {
+    console.error("Update Order Error:", error);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
